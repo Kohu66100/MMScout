@@ -170,6 +170,7 @@ select {
 
 /* 進行状況テキスト */
 #round {
+    font-size: 20px;
     font-weight: bold;
     margin-bottom: 10px;
     display: flex;
@@ -342,6 +343,13 @@ select {
     flex-shrink: 0;
 }
 
+#roundInfo {
+    display: flex;
+    height: 40px;
+    justify-content:space-between; 
+    align-items: flex-end;
+}
+
 /* タイプカラー定義 */
 .type-ほのお { background-color: #ff9c54; }
 .type-みず { background-color: #4f90d5; }
@@ -434,13 +442,10 @@ select {
 /* 特殊ラウンドのアナウンス */
 #boostNotice {
     color: #e67e22;
+    text-align: left;
     font-weight: bold;
     font-size: 14px;
-    margin: 10px 0;
-    min-height: 30px;
-    line-height: 1.5;
     display: none;
-    visibility: hidden;
 }
 
 table {
@@ -636,14 +641,13 @@ table td:nth-child(3) {
 
 <p id="seed"></p>
 
-<div style="display: flex; justify-content: space-between; ">
-  <div style="flex: 1;"></div>
+<div id="roundInfo">
+  <div id="boostNotice"style="flex: 1;"></div>
   <div id="round" style="flex: 1;"></div>
   <div id="poolCount" style="flex: 1; text-align: right; color: #8c8c8c;"></div>
 </div>
 
 <div id="choices"></div>
-<p id="boostNotice"></p>
 
 <div id="resultDisplay"></div>
 <div id="result"></div>
@@ -741,7 +745,7 @@ table td:nth-child(3) {
     <p>性格と努力値は指定されていません。</p>
     <p>同じ持ち物のキャラクターは提示されなくなります。</p>
     
-    <p>対応作品：技ver/TestVer/GB/HR1.09</p>
+    <p>対応作品：<br>鹿ver_65.9+技マシン差分<br>技ver_8.31<br>TestVer_0.17<br>GB_3.21<br>HR_1.09<br></p>
 </div>
 </details>
 
@@ -961,6 +965,13 @@ function showChoices(){
 
     let currentPool = remainingCharacters;
     let noticeTexts = [];
+    
+    // --- ファクトリーモードでアイテムが「停止」のキャラを除外 ---
+    if (activeRules.includes("factoryMode")) {
+        currentPool = currentPool.filter(c => {
+            return !(c.item && c.item.trim() === "停止");
+        });
+    }
 
     // --- 【追加】特殊ルール：「しんかのきせき追加」が無効なときは輝石キャラをあらかじめ除外 ---
     if (!activeRules.includes("Eviolite")) {
@@ -1015,7 +1026,7 @@ function showChoices(){
                 const isNotLegendaryOr600 = !charFilters.includes("準伝説") && !charFilters.includes("禁止級") && !charFilters.includes("幻") && !charFilters.includes("600族");
                 return isWithinSelection && isNotLegendaryOr600;
             });
-            noticeTexts.push("<span style='color: #333;'>🐇 伝説・600族 出現なし</span>");
+            noticeTexts.push("<span style='color: #333;'>🐇 伝説600族 出現なし</span>");
         } else if (round === scoutCount) {
             currentPool = currentPool.filter(c => {
                 const charFilters = c.filters ? c.filters.split('/').map(f => f.trim()) : ["一般"];
@@ -1026,7 +1037,7 @@ function showChoices(){
                 const isLegendaryOr600 = charFilters.includes("準伝説") || charFilters.includes("禁止級") || charFilters.includes("幻") || charFilters.includes("600族");
                 return isWithinSelection && isLegendaryOr600;
             });
-            noticeTexts.push("👑 最終回：伝説・600族 確定出現！");
+            noticeTexts.push("👑 最終回：伝説600族 確定出現！");
         }
     } else {
         //フィルター条件を満たすキャラクターをプールに残す
