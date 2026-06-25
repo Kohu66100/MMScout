@@ -237,7 +237,6 @@ select {
     position: relative;
     width: 110px;
     height: 110px;
-    margin-bottom: 8px;
 }
 
 .chara-img {
@@ -265,7 +264,7 @@ select {
 .type-container {
     display: flex;
     gap: 4px;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     justify-content: center;
     width: 100%;
 }
@@ -344,7 +343,7 @@ select {
 }
 
 #roundInfo {
-    display: flex;
+    display: none;
     height: 40px;
     justify-content:space-between; 
     align-items: flex-end;
@@ -556,8 +555,8 @@ table td:nth-child(3) {
         <label class="patch-label"><input type="radio" name="patchFilter" value="技ver">技ver</label>
         <label class="patch-label"><input type="radio" name="patchFilter" value="TestVer">TestVer</label>
         <div class="break"></div>
-        <label class="patch-label"><input type="radio" name="patchFilter" value="LC">LC</label>
         <label class="patch-label"><input type="radio" name="patchFilter" value="GB">GB</label>
+        <label class="patch-label"><input type="radio" name="patchFilter" value="LC">LC</label>
         <label class="patch-label"><input type="radio" name="patchFilter" value="HR">HR</label>
     </div>
 </div>
@@ -724,6 +723,14 @@ table td:nth-child(3) {
 </details>
 
 <details id="filterGuide">
+    <summary><strong>フィルター詳細（LC）</strong></summary>
+    <div class="guideContent">
+    <p>◆Tier1</p>
+    <p>プテラ/ニョロトノ/ムシャガモ</p>
+    </div>
+</details>
+
+<details id="filterGuide">
     <summary><strong>レベル混沌モードについて</strong></summary>
     <div class="guideContent">
     <p>全てのキャラクターがランダムなレベルで提示されます。</p>
@@ -745,7 +752,8 @@ table td:nth-child(3) {
     <p>性格と努力値は指定されていません。</p>
     <p>同じ持ち物のキャラクターは提示されなくなります。</p>
     
-    <p>対応作品：<br>鹿ver_65.9+技マシン差分<br>技ver_8.31<br>TestVer_0.17<br>GB_3.21<br>HR_1.09<br></p>
+    <p>対応作品：<br>鹿ver_65.9+技マシン差分<br>技ver_8.31<br>TestVer_0.17<br>GB_3.21<br>LC_1.90<br>HR_1.09<br></p>
+    <p>未対応：<br>本家</p>
 </div>
 </details>
 
@@ -842,26 +850,54 @@ async function startGame(){
         }
 
     } catch (error) {
-        alert("エラーが発生しました: " + error.message);
+        if (activeRules.includes("factoryMode")) {
+            alert("エラー: " + `「${selectedPatchGlobal}」はファクトリーに対応していません。`);
+        }else{
+            alert("エラー: " + error.message);
+        }
+        
         return; // エラー時はここで処理をストップ
     }
     
     if (activeRules.includes("factoryMode")){
-        targetScript = `charaDB/${selectedPatchGlobal}技DB.js`;
+        targetScript = `charaDB/ファクトリー技DB.js`;
         try {
             await loadScript(targetScript);
 
             if (window.customCsvData) {
                 skillTable = parseCSV(window.customCsvData);
             } else {
-                //alert("データが見つかりませんでした。");
+                alert("データが見つかりませんでした。");
+                return;
             }
 
         } catch (error) {
-            targetScript = `charaDB/本家技DB.js`;
-            await loadScript(targetScript);
-            skillTable = parseCSV(window.customCsvData);
+            alert("エラー: " + error.message);
+            return;
         }
+    }
+
+    // --- skillTableの調整 ---
+    if (activeRules.includes("factoryMode")) {
+        const skillMap = new Map();
+
+        for (const c of skillTable) {
+            const patch = c.patch.trim();
+            
+            if (patch !== "本家" && patch !== selectedPatchGlobal) {
+                continue;
+            }
+
+            // すでに同じ名前のスキルがMapにあるか確認
+            const existing = skillMap.get(c.name);
+
+            // まだ登録されていない、または既存のものが「本家」で今回のが「選択作品」なら上書き
+            if (!existing || (existing.patch.trim() === "本家" && patch === selectedPatchGlobal)) {
+                skillMap.set(c.name, c);
+            }
+        }
+        // Mapの値を配列に戻す
+        skillTable = Array.from(skillMap.values());
     }
 
     // --- selectedPatchGlobal に応じたタイプ相性表の動的変更 ---
@@ -915,6 +951,7 @@ async function startGame(){
     document.getElementById("filterArea").style.display = "none";
     document.getElementById("generationArea").style.display = "none";
     document.getElementById("optionArea").style.display = "none";
+    document.getElementById("roundInfo").style.display = "flex";
     document.getElementById("boostNotice").style.display = "block";
     
     // リザルト表示をリセット
@@ -1331,6 +1368,7 @@ function showResult(){
     document.getElementById("boostNotice").style.margin = "0";
     document.getElementById("round").style.display = "none";
     document.getElementById("poolCount").style.display = "none";
+    document.getElementById("roundInfo").style.display = "none";
 
     document.getElementById("scoutingResultDisplay").innerHTML = ""; 
     document.getElementById("resultDisplay").style.display = "grid";
@@ -1431,6 +1469,7 @@ function resetToStart(){
     // ドラフト中・結果画面の表示を非表示にする
     document.getElementById("resultDisplay").style.display = "none";
     document.getElementById("boostNotice").style.display = "none";
+    document.getElementById("roundInfo").style.display = "none";
     tableContainer.style.display = 'none';
     document.getElementById("result").innerHTML = "";
     document.getElementById("seed").innerHTML = "";
