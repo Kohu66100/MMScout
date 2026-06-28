@@ -715,10 +715,11 @@ table td:nth-child(3) {
     <p>未定</p>
     
     <p>◆封殺</p>
-    <p>カモネギ/メガニウム + 本家</p>
-    
-    <p>◆御三家</p>
-    <p>エンペルト + 本家</p>
+    <p>カモネギ + 本家</p>
+    <br>
+    <p>ファクトリーとレベル混沌が両方オンの場合、以下の変更が加わります。</p>
+    <p>・ひらめきだまと特性ひらめきが出現しない。</p>
+    <p>・きのみジュースがオボンのみに置き換えられる。</p>
     </div>
 </details>
 
@@ -727,6 +728,9 @@ table td:nth-child(3) {
     <div class="guideContent">
     <p>◆Tier1</p>
     <p>プテラ/ニョロトノ/ムシャガモ</p>
+    
+    <p>◆封殺</p>
+    <p>未定</p>
     </div>
 </details>
 
@@ -736,11 +740,6 @@ table td:nth-child(3) {
     <p>全てのキャラクターがランダムなレベルで提示されます。</p>
     <p>評価が低いキャラほど高レベルで出現します。</p>
     <p>どのようなゲームバランスになるかは誰にも予想できません。</p>
-    <p>◆調整目安</p>
-    <p>御三家：Lv52～Lv55</p>
-    <p>序盤ノーマル：Lv58～Lv61</p>
-    <p>強い準伝：Lv47～Lv50</p>
-    
     <p>未研究の作品は全員Lv50～Lv53にしています。</p>
 </div>
 </details>
@@ -1003,14 +1002,33 @@ function showChoices(){
     let currentPool = remainingCharacters;
     let noticeTexts = [];
     
-    // --- ファクトリーモードでアイテムが「停止」のキャラを除外 ---
+    // --- ファクトリーモードで技1が空欄のキャラを除外 ---
     if (activeRules.includes("factoryMode")) {
         currentPool = currentPool.filter(c => {
-            return !(c.item && c.item.trim() === "停止");
+            return !(c.skill1 && c.skill1.trim() === "");
         });
     }
+    
+    // --- 技verでファクトリー＆レベル混沌のときの特殊処理 ---
+    if (selectedPatchGlobal === "技ver" && activeRules.includes("factoryMode") && activeRules.includes("levelVariance")) {
+        //ひらめきだまと特性ひらめきを除外
+        currentPool = currentPool.filter(c => {
+            const inspirationItem = (c.item && c.item.trim() === "ひらめきだま");
+            const inspirationAbility = (c.ability && c.ability.trim() === "ひらめき");
+            return !inspirationItem && !inspirationAbility;
+        });
+        //きのみジュースをオボンのみに置き換える
+        currentPool = currentPool.map(c => {
+            if (c.item && c.item.trim() === "きのみジュース") {
+                // 元のデータを壊さないようにコピーを作ってitemだけ書き換える
+                return Object.assign({}, c, { item: "オボンのみ" });
+            }
+            return c;
+        });
+    }
+    
 
-    // --- 【追加】特殊ルール：「しんかのきせき追加」が無効なときは輝石キャラをあらかじめ除外 ---
+    // --- 「しんかのきせき追加」が無効なときは輝石キャラをあらかじめ除外 ---
     if (!activeRules.includes("Eviolite")) {
         currentPool = currentPool.filter(c => {
             return !(c.styleForm && c.styleForm.trim() === "輝石");
@@ -1285,7 +1303,6 @@ function addTypeRow(characterObj, isPreview = false) {
     const formText = characterObj.styleForm ? `（${characterObj.styleForm}）` : "";
     const levelText = characterObj.chosenLevel ? ` Lv.${characterObj.chosenLevel}` : "";
     
-    // プレビュー時は名前の頭に「(プレビュー)」と付けると分かりやすいです（お好みで）
     const prefix = isPreview ? "" : "";
     const fullNameText = prefix + characterObj.name + formText + levelText;
     
@@ -1563,7 +1580,6 @@ function createCharacterCard(charData, mode, index) {
             const itemIcon = document.createElement("img");
             itemIcon.className = "factory-icon";
             itemIcon.src = `images/item/${charData.item.trim()}.png`;
-            itemIcon.alt = charData.item;
             itemIcon.onerror = function() {
                 itemIcon.src = `images/item/モンスターボール.png`;
             };
@@ -1607,7 +1623,7 @@ function createCharacterCard(charData, mode, index) {
         card.appendChild(factoryDiv);
     }
 
-    // 4. フッター部分（ボタン or テキストタグ）の作成
+    // フッター部分（ボタン or テキストタグ）の作成
     const levelText = charData.chosenLevel ? `<br>Lv.${charData.chosenLevel}` : "";
     const prefix = (typeof index === "number") ? `${index + 1}. ` : "";
 
