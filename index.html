@@ -1005,7 +1005,7 @@ function showChoices(){
     // --- ファクトリーモードで技1が空欄のキャラを除外 ---
     if (activeRules.includes("factoryMode")) {
         currentPool = currentPool.filter(c => {
-            return !(c.skill1 && c.skill1.trim() === "");
+            return c.skill1 && c.skill1.trim() !== "";
         });
     }
     
