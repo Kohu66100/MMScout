@@ -335,6 +335,14 @@ select {
 .factory-skill:last-child {
     border-bottom: none;
 }
+.factory-moveSpeed {
+    text-align: right;
+    font-size: 13px;
+    color: #2d3748;
+    margin-left: auto;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
 .factory-icon {
     width: 20px;
     height: 20px;
@@ -458,9 +466,9 @@ table {
 
 th, td {
     border: 1px solid #ddd;
-    padding: 10px 4px;
+    padding: 4px 4px;
     text-align: center;
-    font-size: 13px;
+    font-size: 10px;
 }
 
 th {
@@ -470,7 +478,7 @@ th {
 
 table th:nth-child(1),
 table td:nth-child(1) {
-    width: 180px;
+    width: 80px;
     padding-left: 8px;
     font-weight: bold;
 }
@@ -481,14 +489,14 @@ table td:nth-child(1) {
 
 table th:nth-child(2),
 table td:nth-child(2) {
-    width: 65px;
+    width: 30px;
     font-weight: bold;
     text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
 }
 
 table th:nth-child(3),
 table td:nth-child(3) {
-    width: 65px;
+    width: 30px;
     font-weight: bold;
     text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
 }
@@ -497,13 +505,13 @@ table td:nth-child(3) {
     writing-mode: vertical-rl;
     letter-spacing: 2px;
     width: 12px;
-    height: 70px;
+    height: 50px;
     vertical-align: middle;
 }
 
 /* テーブル表示領域が伸縮して下部要素がズレるのを防ぐコンテナ */
 .table-container {
-    min-height: 350px;
+    min-height: 200px;
     max-width: 900px;
     margin: 20px auto;
     display: none;
@@ -1418,6 +1426,16 @@ function getSkillType(skillName) {
     return skill ? skill.type.trim() : "unknown";
 }
 
+function getSkillMoveSpeed(skillName) {
+    if (!skillName) return "unknown";
+    
+    // skillTableからnameが一致するレコードを探す
+    const skill = skillTable.find(s => s.name === skillName.trim());
+    
+    // 見つかればそのtypeを、見つからなければ "unknown" を返す
+    return skill ? skill.moveSpeed.trim() : "unknown";
+}
+
 function createTypeBadge(typeName) {
     const badge = document.createElement("span");
     // 既存のタイプカラーCSSクラス（.type-ほのお 等）を適用
@@ -1615,6 +1633,14 @@ function createCharacterCard(charData, mode, index) {
                 sDiv.className = "factory-skill";
                 sDiv.textContent = skillObj.name;
                 sContainer.appendChild(sDiv);
+
+                if (selectedPatchGlobal === "技ver"){
+                    const sMoveSpeed = document.createElement("div");
+                    sMoveSpeed.className = "factory-moveSpeed";
+                    const skillMoveSpeed = getSkillMoveSpeed(skillObj.name);
+                    sMoveSpeed.textContent = skillMoveSpeed;
+                    sContainer.appendChild(sMoveSpeed);
+                }
                 
                 skillsContainer.appendChild(sContainer);
             }
