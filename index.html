@@ -684,6 +684,9 @@ table td:nth-child(3) {
     <p>例：</p>
     <p>FC対応ロトムは6種類なので出現率は1/6。</p>
     <p>HRのキュウコンは通常/R団/アローラの3種類なので出現率は1/3。</p>
+    <br>
+    <p>◆タイプごとの出現率調整</p>
+    <p>種族数が極端に多い/少ないタイプには出現率補正をかけています。</p>
 </div>
 
 <details id="filterGuide">
@@ -1158,6 +1161,84 @@ function showChoices(){
 
         return { data: c, weight: weight };
     });
+
+    //キャラクターDBの各タイプの出現回数を集計
+    if (true) {
+        const typeCounts = {};
+        let totalTypeSlots = 0;
+
+        // 現在のプール内からタイプ1・タイプ2の総数を集計
+        pool.forEach(item => {
+            const t1 = item.data.type1 ? item.data.type1.trim() : "";
+            const t2 = item.data.type2 ? item.data.type2.trim() : "";
+
+            if (t1 && t1 !== "" && t1 !== "空白") {
+                typeCounts[t1] = (typeCounts[t1] || 0) + 1;
+                totalTypeSlots++;
+            }
+            if (t2 && t2 !== "" && t2 !== "空白" && t1 !== t2) {
+                typeCounts[t2] = (typeCounts[t2] || 0) + 1;
+                totalTypeSlots++;
+            }
+        });
+
+        // 登場したユニークなタイプの種類数
+        const uniqueTypesCount = Object.keys(typeCounts).length;
+
+        if (uniqueTypesCount > 0) {
+            // 1タイプあたりの平均件数を算出
+            const averageCount = totalTypeSlots / uniqueTypesCount;
+
+            // 各タイプごとの補正倍率を計算 (平均件数 / そのタイプの件数)
+            // 例: 平均20件のとき、みずタイプが40件あれば 倍率 = 20 / 40 = 0.5倍 に低下
+            //     はがねタイプが5件しかなければ 倍率 = 20 / 5 = 4.0倍 に上昇
+            const typeMultipliers = {};
+            for (const type in typeCounts) {
+                // 極端な倍率（10倍など）になりすぎるのを防ぐため、Math.minやMath.maxで上限・下限を設けるとマイルドになります
+                let rawMultiplier = averageCount / typeCounts[type];
+                typeMultipliers[type] = Math.max(0.6, Math.min(2.0, rawMultiplier)); 
+            }
+
+            // 全ポケモンの重みに倍率を適用
+            pool.forEach(item => {
+                const t1 = item.data.type1 ? item.data.type1.trim() : "";
+                const t2 = item.data.type2 ? item.data.type2.trim() : "";
+                let pokemonMultiplier = 1.0;
+
+                if (t1 && typeMultipliers[t1]) {
+                    pokemonMultiplier *= typeMultipliers[t1];
+                }
+                if (t2 && t2 !== t1 && typeMultipliers[t2]) {
+                    pokemonMultiplier *= typeMultipliers[t2];
+                }
+                pokemonMultiplier = Math.max(0.5, Math.min(3.0, pokemonMultiplier)); 
+
+                // 重みを自動補正倍率でアップデート
+                item.weight *= pokemonMultiplier;
+            });
+
+            if (selectedCharacters.length === 0){
+                // アラート表示用にタイプごとの倍率と数を並び替えてテキスト化
+                let alertMessage = "【タイプ出現率自動調整 結果】\n";
+                alertMessage += `総タイプ枠数: ${totalTypeSlots} / 平均件数: ${averageCount.toFixed(1)}件\n\n`;
+                alertMessage += "タイプ名 : 出現数 -> 補正倍率\n";
+                alertMessage += "---------------------------------------\n";
+
+                // 倍率の高い順（出現数の少ない順）にソートして表示
+                const sortedTypes = Object.keys(typeMultipliers).sort((a, b) => typeMultipliers[b] - typeMultipliers[a]);
+
+                sortedTypes.forEach(type => {
+                    const count = typeCounts[type];
+                    const multiplier = typeMultipliers[type];
+                    alertMessage += `${type.padEnd(5, ' ')} : ${String(count).padStart(3, ' ')}件 -> ${multiplier.toFixed(2)}倍\n`;
+                });
+
+                // ログ表示
+                console.log(alertMessage);
+            }
+        }
+    }
+    
 
     let chosenCandidates = [];
     const currentCandidateCount = Math.min(candidateCount, pool.length);
@@ -1761,6 +1842,8 @@ document.getElementById("cancelAllGeneration").addEventListener("click", () => {
         cb.checked = false;
     });
 });
+
+
 
 </script>
 
